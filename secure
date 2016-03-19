@@ -67,28 +67,42 @@ case "$COMMAND" in
 
         # First, multi-party encrypt files (in case private files live within private dirs)
 	for file in $(find . -type f -name '*.private' \
-	    | sed 's@.private@@g; s@^./@@g;' )
+	    | sed 's@.private$@@g; s@^./@@g;' )
 	do
 	    PRIVATE_FILE="${file}.private"
 	    ENCRYPTED_FILE="${file}.encrypted.file"
+
+	    WORKING_DIR=`dirname ${file}`
+	    PRIVATE_FILE_NAME=`basename $PRIVATE_FILE`
+	    ENCRYPTED_FILE_NAME=`basename $ENCRYPTED_FILE`
+
 	    echo "Encrypting"
 	    echo "  $PRIVATE_FILE"
 	    echo "    as"
 	    echo "  $ENCRYPTED_FILE"
-	    tar cjv $PRIVATE_FILE | gpg -q --batch --yes --trust-model always --output $ENCRYPTED_FILE --encrypt $RECIPIENTS
+	    pushd $WORKING_DIR
+	    tar cjv $PRIVATE_FILE_NAME | gpg -q --batch --yes --trust-model always --output $ENCRYPTED_FILE_NAME --encrypt $RECIPIENTS
+	    popd
 	done
 
 	# Next, multi-party encrypt directories
 	for dir in $(find . -type d -name '*.private' \
-	    | sed 's@.private@@g; s@^./@@g;' )
+	    | sed 's@.private$@@g; s@^./@@g;' )
 	do
 	    PRIVATE_DIR="${dir}.private"
 	    ENCRYPTED_DIR="${dir}.encrypted.dir"
+
+	    WORKING_DIR=`dirname ${dir}`
+	    PRIVATE_DIR_NAME=`basename $PRIVATE_DIR`
+	    ENCRYPTED_DIR_NAME=`basename $ENCRYPTED_DIR`
+
 	    echo "Encrypting"
 	    echo "  $PRIVATE_DIR"
 	    echo "    as"
 	    echo "  $ENCRYPTED_DIR"
-	    tar cjv $PRIVATE_DIR | gpg -q --batch --yes --trust-model always --output $ENCRYPTED_DIR --encrypt $RECIPIENTS
+	    pushd $WORKING_DIR
+	    tar cjv $PRIVATE_DIR_NAME | gpg -q --batch --yes --trust-model always --output $ENCRYPTED_DIR_NAME --encrypt $RECIPIENTS
+	    popd
 	done
 	;;
 
@@ -99,28 +113,42 @@ case "$COMMAND" in
 
 	# First, multi-party decrypt directories
 	for dir in $(find . -type f -name '*.encrypted.dir' \
-	    | sed 's@.encrypted.dir@@g; s@^./@@g;' )
+	    | sed 's@.encrypted.dir$@@g; s@^./@@g;' )
 	do
 	    PRIVATE_DIR="${dir}.private"
 	    ENCRYPTED_DIR="${dir}.encrypted.dir"
+
+	    WORKING_DIR=`dirname ${dir}`
+	    PRIVATE_DIR_NAME=`basename $PRIVATE_DIR`
+	    ENCRYPTED_DIR_NAME=`basename $ENCRYPTED_DIR`
+
 	    echo "Decrypting"
 	    echo "  $ENCRYPTED_DIR"
 	    echo "    as"
 	    echo "  $PRIVATE_DIR"
-	    echo "$PASSWORD" | gpg -q --batch --yes --passphrase-fd 0 --decrypt $ENCRYPTED_DIR | tar xjv -C .
+	    pushd $WORKING_DIR
+	    echo "$PASSWORD" | gpg -q --batch --yes --passphrase-fd 0 --decrypt $ENCRYPTED_DIR_NAME | tar xjv -C .
+	    popd
 	done
 
         # Next, multi-party decrypt files
 	for file in $(find . -type f -name '*.encrypted.file' \
-	    | sed 's@.encrypted.file@@g; s@^./@@g;' )
+	    | sed 's@.encrypted.file$@@g; s@^./@@g;' )
 	do
 	    PRIVATE_FILE="${file}.private"
 	    ENCRYPTED_FILE="${file}.encrypted.file"
+
+	    WORKING_DIR=`dirname ${file}`
+	    PRIVATE_FILE_NAME=`basename $PRIVATE_FILE`
+	    ENCRYPTED_FILE_NAME=`basename $ENCRYPTED_FILE`
+
 	    echo "Decrypting"
 	    echo "  $ENCRYPTED_FILE"
 	    echo "    as"
 	    echo "  $PRIVATE_FILE"
-	    echo "$PASSWORD" | gpg -q --batch --yes --passphrase-fd 0 --decrypt $ENCRYPTED_FILE | tar xjv > $PRIVATE_FILE
+	    pushd $WORKING_DIR
+	    echo "$PASSWORD" | gpg -q --batch --yes --passphrase-fd 0 --decrypt $ENCRYPTED_FILE_NAME | tar xjv > $PRIVATE_FILE_NAME
+	    popd
 	done
 
 	;;
